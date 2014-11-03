@@ -1,0 +1,1 @@
+elements.addClass( "foo" );

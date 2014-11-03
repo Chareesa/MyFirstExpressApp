@@ -1,0 +1,266 @@
+/*
+* @package jscodesniffer
+* @author sheiko
+* @license MIT
+* @copyright (c) Dmitry Sheiko http://www.dsheiko.com
+* jscs standard:Jquery
+* jshint unused:false
+* Code style: http://docs.jquery.com/JQuery_Core_Style_Guidelines
+*/
+
+/**
+* A module representing Cli
+* @module lib/Cli
+*/
+
+// UMD boilerplate according to https://github.com/umdjs/umd
+if ( typeof module === "object" && typeof define !== "function" ) {
+	/**
+	* Override AMD `define` function for RequireJS
+	* @param {function( function, Object, Object )} factory
+	*/
+	var define = function ( factory ) {
+		module.exports = factory( require, exports, module );
+	};
+}
+
+define(function() {
+/**
+* @access private
+*/
+var utils = {
+		/**
+		* @access public
+		* @param {string} str
+		* @returns {string}
+		*/
+		ltrim: function( str ) {
+			var lTrimRe = /^\s+/;
+			// normalize: ltrim
+			return str.replace( lTrimRe, "" );
+		}
+	},
+	/**
+	* @constant
+	* @type {numder}
+	* @default
+	*/
+	MAX_DIR_STRUCTURE_NESTING_LEVEL = 30,
+	/*
+	* @type {numder}
+	*/
+	readRealtimeConfigCallCounter = 0,
+	/**
+	* @constant
+	* @type {Boolean}
+	* @default
+	*/
+	DIRECTORY_SEPARATOR = ( process.platform === "win32" ? "\\" : "/" ),
+
+	/**
+	* CLI services
+	* @constructor
+	* @alias module:lib/Cli
+	* @param {type} fsContainer
+	* @param {type} pathContainer
+	*/
+	Cli = function( fsContainer, pathContainer ) {
+		var startTime = process.hrtime();
+		// Dependency injection
+		fsContainer = fsContainer || {};
+		pathContainer = pathContainer || {};
+		/** @lends module:lib/Cli.prototype */
+		return {
+			/**
+			* @type {number}
+			*/
+			fileCount: 0,
+			/**
+			* Display header information (copyright)
+			* @param {string} version
+			*/
+			printHeader: function( version ) {
+				console.log( " JsCodeSniffer " + version + " (https://github.com/dsheiko/jscodesniffer) ");
+			},
+			/**
+			* Display boy in the case of successful bypass
+			* @param {string} standard
+			*/
+			printSuccess: function( standard ) {
+				console.log( " \033[0;32m>>>\033[0m All the files appear to be valid according to '" + standard + "' standard" );
+			},
+			/**
+			* Display footer information
+			*/
+			printFooter: function() {
+				console.log( " " + this.fileCount + " file(s) validated in " + this.getElapsedTime() );
+			},
+			/**
+			* Determine script execution time
+			* @return {String}
+			*/
+			getElapsedTime: function() {
+					var precision = 0,
+							elapsed = process.hrtime( startTime )[ 1 ] / 1000000, // divide by a million to get nano to milli
+					out = process.hrtime( startTime )[ 0 ] + "s, " + elapsed.toFixed( precision ) + "ms";
+					startTime = process.hrtime(); // reset the timer
+					return out;
+			},
+
+			/**
+			* @callback dirIteratorCb
+			* @param {string} pathArg
+			* @param {string} text
+			*/
+
+			/**
+			* Apply callback to the file
+			* @access public
+			* @param {string} pathArg
+			* @param {dirIteratorCb} fn
+			*/
+			applyToFile: function( pathArg, fn ) {
+				this.fileCount++;
+				fn( pathArg, fsContainer.readFileSync( pathArg, "utf-8" ) );
+			},
+			/**
+				* Apply callback to every file within the directory recursively
+				* @access public
+				* @param {string} pathArg
+				* @param {dirIteratorCb} fn
+				*/
+			applyToEveryFileInDir: function( pathArg, fn ) {
+				var that = this,
+					dir = fsContainer.readdirSync( pathArg ),
+					stat;
+				dir && dir.forEach(function( file ){
+				var re = /\.js$/gi,
+					excludeRe = /\.min\.js$/gi;
+				stat = fsContainer.statSync( pathArg + "/" + file );
+
+				stat.isFile() && re.test( file ) && !excludeRe.test( file ) &&
+					that.applyToFile( pathArg + "/" + file, fn );
+
+				stat.isDirectory() && that.applyToEveryFileInDir( pathArg + "/" + file, fn );
+				});
+			},
+			/**
+				* Apply callback to every file within the path recursively
+				* @access public
+				* @param {string} pathArg
+				* @param {dirIteratorCb} fn
+				*/
+			applyToEveryFileInPath: function( pathArg, fn ) {
+				var stat,
+					reNormPath = /\/+$/;
+
+				pathArg = pathArg.replace( reNormPath, "" );
+				if ( !fsContainer.existsSync( pathArg ) ) {
+				throw new ReferenceError( pathArg + " doesn't exist\n" );
+				}
+				stat = fsContainer.statSync( pathArg );
+				return stat.isFile() ? this.applyToFile( pathArg, fn ) : this.applyToEveryFileInDir( pathArg, fn );
+			},
+			/**
+				* Get object with project info
+				* @access public
+				* @returns {Object}
+				*/
+			getProjectInfo: function() {
+				var project, plain;
+				try {
+				plain = fsContainer.readFileSync( pathContainer.join( __dirname, "..", "package.json" ), "utf-8" );
+				project = JSON.parse( plain );
+				} catch ( e ) {
+				throw new ReferenceError( "Cannot read package.json\n" );
+				}
+				return project;
+			},
+			/**
+				* Populate options with ones founds in args
+				* @access public
+				* @param {Array} args
+				* @param {Object} options - reference
+				* @returns {Object}
+				*/
+			parseCliOptions: function( args, options ) {
+				var re = /^--/g;
+				args.slice( 2 ).forEach(function( arg ){
+					var slices;
+					// normalize: ltrim
+					arg = utils.ltrim( arg );
+					if ( arg.indexOf( "--" ) === 0 ) {
+						slices = arg.split( "=" );
+						options[ slices[0].replace( re, "" ) ] = slices[ 1 ] || null;
+					}
+				});
+				return options;
+			},
+
+			/**
+				* Find file name or path given in CLI arguments
+				* @access public
+				* @param {string[]} args
+				* @returns {string[]}
+				*/
+			findPathsInCliArgs: function( args ) {
+				var out = args.slice( 2 ).filter(function( arg ){
+					arg = utils.ltrim( arg );
+					return arg.indexOf( "-" ) !== 0;
+				});
+				return out || [ "." ];
+			},
+
+			/**
+				* If checkstyle already exists (e.g. built by phpcs), extend it with actual report body
+				* @access public
+				* @param {string} file
+				* @returns {string}
+				*/
+			extractExistingReportBody: function( file ) {
+				var data,
+					// Extract body of the existing report
+					re1 = /^\s*<\?xml.*?\?>/i,
+					re2 = /^\s*<checkstyle.*?>/i,
+					re3 = /<\/checkstyle>\s*$/i;
+
+				if ( !fsContainer.existsSync( file ) ) {
+				return "";
+				}
+
+				data = fsContainer.readFileSync( file, "utf-8" );
+				return data.replace( re1, "" ).replace( re2, "" ).replace( re3, "" );
+			},
+			/**
+				* Find in project root (any parent) directory and read local sniffer configuration
+				* Just like .jshintrc
+				* @access public
+				* @param {string} pathArg
+				* @returns {Object}
+				*/
+			readRealtimeConfig: function( pathArg ) {
+				var LOCAL_CFG_FILE = ".jscsrc",
+					parentPath,
+					cfgPath = pathContainer.join( pathArg, LOCAL_CFG_FILE );
+
+				if ( readRealtimeConfigCallCounter++ > MAX_DIR_STRUCTURE_NESTING_LEVEL ) {
+					return;
+				}
+				if ( fsContainer.existsSync( cfgPath ) ){
+					return JSON.parse( fsContainer.readFileSync( cfgPath, "utf-8" ) );
+				}
+				parentPath = pathContainer.join( pathArg, "/../" );
+				// ?> / - "", ""
+				// ?>D:\ - "D:", ""
+				if ( parentPath.split( DIRECTORY_SEPARATOR ).length > 1 && fsContainer.statSync( parentPath ).isDirectory() ) {
+					return this.readRealtimeConfig( parentPath );
+				}
+				return {};
+			}
+
+		};
+	};
+
+	return Cli;
+
+});
