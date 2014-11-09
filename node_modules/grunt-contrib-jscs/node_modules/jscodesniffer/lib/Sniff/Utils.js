@@ -1,0 +1,127 @@
+/*
+* @package jscodesniffer
+* @author sheiko
+* @license MIT
+* @copyright (c) Dmitry Sheiko http://www.dsheiko.com
+* jscs standard:Jquery
+* jshint unused:false
+* Code style: http://docs.jquery.com/JQuery_Core_Style_Guidelines
+*/
+
+/**
+* A module providing common utilites for sniffers
+* @module lib/Sniff/Utils
+*/
+
+// UMD boilerplate according to https://github.com/umdjs/umd
+if ( typeof module === "object" && typeof define !== "function" ) {
+	/**
+	* Override AMD `define` function for RequireJS
+	* @param {function( function, Object, Object )} factory
+	*/
+	var define = function ( factory ) {
+		module.exports = factory( require, exports, module );
+	};
+}
+
+define(function() {
+"use strict";
+	/**
+	* @namespace
+	* @alias module:lib/Sniff/Utils
+	*/
+	return {
+		/**
+		* Throw exception if the rule is invalid (TypeError)
+		* @access public
+		* @param {object} rule
+		* @param {string} prop
+		* @param {string} type
+		* @param {boolean} isRequired
+		*/
+		validateRule: function( rule, prop, type, isRequired ) {
+			if ( !isRequired && !rule.hasOwnProperty( prop ) ) {
+				return;
+			}
+			if ( type === "array" ) {
+				if ( !Array.isArray( rule[ prop ] ) ) {
+					throw new TypeError( "rule." + prop + " must be a " + type );
+				}
+			return;
+			}
+			if ( rule.hasOwnProperty( prop ) && typeof rule[ prop ] !== type ) {
+				throw new TypeError( "rule." + prop + " must be a " + type );
+			}
+		},
+		/**
+		* @alias module:lib/Sniff/Utils#Mixin
+		* @constructor
+		* @memberOf module:lib/Sniff/Utils
+		* @param {module:lib/SourceCode} sourceCode
+		* @param {module:lib/Mediator} mediator
+		* @param {string} sniffName
+		*/
+		Mixin: function( sourceCode, mediator, sniffName ) {
+			/** @lends module:lib/Sniff/Utils#Mixin.prototype */
+			return {
+				/**
+				* Check if a given type matches defined set or set is not defined
+				* @param {Object} ruleProp - `rule.exceptions.firstArg`.for
+				* @param {string} type - node type
+				* @returns {boolean}
+				*/
+				matchesFor: function( ruleProp, type ) {
+					if ( !ruleProp.hasOwnProperty( "for" ) ) {
+						return true;
+					}
+					return ruleProp[ "for" ].indexOf( type ) !== -1;
+				},
+				/**
+				* Report to the mediator if the fragment between lPos and rPos doesn't match expected
+				* if it's not multiline
+				*
+				* @access public
+				* @param {number} lToken
+				* @param {number} rToken
+				* @param {number} expected
+				* @param {string} errorCode
+				* @param {string} [where='']
+				*/
+				sniffExcerpt: function( lToken, rToken, expected, errorCode, where ) {
+					var excerpt, lPos, rPos;
+					where = where || "";
+					// Something wrong
+					if ( typeof lToken === "undefined" && typeof rToken === "undefined" ) {
+						throw new TypeError( "Both given tokens undefined" );
+					}
+					// Prev. token out of the source range
+					if ( typeof lToken === "undefined" ) {
+						lToken = rToken;
+					}
+					// Next. token out of the source range
+					if ( typeof rToken === "undefined" ) {
+						rToken = lToken;
+					}
+					lPos = lToken.range[ 1 ];
+					rPos = rToken.range[ 0 ];
+					excerpt = sourceCode.extract( lPos, rPos );
+					if ( excerpt.find( "\n" ) === -1 ) {
+						if ( excerpt.length() !== expected ) {
+							mediator.publish( "violation", sniffName, errorCode, [ lPos, rPos ], {
+								start: lToken.loc.end,
+								end: rToken.loc.start
+							}, {
+								actual: excerpt.length(),
+								expected: expected,
+								excerpt: excerpt.get(),
+								trace: ".." + sourceCode.extract( lPos - 1, rPos + 1 ).get() + "..",
+								where: where
+							});
+						}
+					}
+				}
+			};
+		}
+
+	};
+});

@@ -1,0 +1,36 @@
+img {
+  width: 10%;
+  height: 10%;
+  display: inline-block;
+}
+ul {
+  list-style: none;
+}
+#newUl {
+  list-style-type: none;
+  display: inline-block;
+}
+
+h1 {
+  color: #433e90;
+  background-color: #a19c9c;
+  text-align: center;
+}
+#pCenter {
+  text-align: center;
+}
+#aNoDec {
+  color: #433e90;
+  text-decoration: none;
+
+}
+button {
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  background: #d4d8d4;
+  font-weight: bold;
+}
+nav {
+  font-size: 14px;
+}

@@ -1,0 +1,15 @@
+* Add Sniffers to check against JSDoc3: missing documentation, invalid tags and doc syntax
+* Write a decent documentation, probably using Bootstrap 3.0 doc template
+* Formalize ErrorCodes, probably following the pattern <ruleseName>.<ruleName>. References: phpcs
+* Add Crockford's styles http://javascript.crockford.com/code.html
+* Add missing tests for Sniffer, SyntaxAnalizer and other's contract validation
+* Beautify tests following the pattern
+describe("method",..
+it ("must..."
+it ("must..."
+* Add experimental mode --resolve, it invokes Resolver instead of Reporter, that analyzes logger and tries to solve
+	conflicts. It uses Replacer to apply changes on the code, and checks JavaScript validity with esprima before outputing the code
+* Cli with https://npmjs.org/package/commander module
+* Code browser in style of jscoverage (probably build it by using chunks array)
+* Make a separate project using jscs and node-webkit to provide desktop UX. It allows to choose paths to test and
+generate jscoverage like report to explore
