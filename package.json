@@ -6,8 +6,5 @@
     "express": "3.x",
     "grunt-contrib-jscs": "*",
     "grunt-contrib-jshint": "*"
-  },
-  "scripts": {
-  "start": "node index.js"
   }
 }
