@@ -1,3 +1,6 @@
+body {
+  margin: 0%;
+}
 img {
   width: 10%;
   height: 10%;
@@ -10,7 +13,6 @@ ul {
   list-style-type: none;
   display: inline-block;
 }
-
 h1 {
   color: #433e90;
   background-color: #a19c9c;
