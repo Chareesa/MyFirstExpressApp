@@ -1,1 +1,0 @@
-var inVAlid = 1;

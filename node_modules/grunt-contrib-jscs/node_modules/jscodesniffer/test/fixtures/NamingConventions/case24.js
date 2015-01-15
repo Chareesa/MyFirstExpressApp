@@ -1,1 +1,0 @@
-function in_valid() {}

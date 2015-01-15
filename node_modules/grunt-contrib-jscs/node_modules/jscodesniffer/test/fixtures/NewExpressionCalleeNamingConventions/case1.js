@@ -1,1 +1,0 @@
-obj = new Constructor(); // good

@@ -1,1 +1,0 @@
-var validOne = 1;
