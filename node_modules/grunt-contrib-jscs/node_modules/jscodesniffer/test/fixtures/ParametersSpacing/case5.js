@@ -1,3 +1,0 @@
-foo = function( a,
-  b
-) {}

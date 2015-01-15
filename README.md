@@ -1,3 +1,7 @@
-This is an assignment I did for Code Fellows.
-The requirements were "Create your own static file serving express app, include at least one link, one css style sheet and one javascript file".
-I looked at some practice code from Mel Quark's JavaScript2 class to remember how to apply the event listener to multiple images.
+Static Express App
+==================
+
+The requirements for this app were to create a static file server using Express, one link, one style sheet, and one JavaScript file.
+
+The app is hosted on Heroku, you can see it here:
+https://staticexpressapp.herokuapp.com/
