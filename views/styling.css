@@ -36,3 +36,6 @@ button {
 nav {
   font-size: 14px;
 }
+h2, nav {
+  padding-left: 15px;
+}
